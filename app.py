@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import base64
 
 # --- PATH CONFIGURATION FOR STREAMLIT CLOUD ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -45,9 +44,6 @@ st.set_page_config(
     page_icon="🩺",
     layout="wide"
 )
-
-# Detect theme for proper styling
-is_dark_theme = st.get_option("theme.backgroundColor") == '#0e1117'
 
 # Language toggle
 lang = st.sidebar.radio("Language", ["English", "Malay"])
@@ -136,26 +132,15 @@ if submitted:
         # Display results
         st.subheader("Prediction Results" if lang == "English" else "Keputusan Ramalan")
         
-        # Custom risk visualization with HTML/CSS
-        st.markdown(f"""
-        <div style="margin: 20px 0; position: relative; height: 60px; 
-                    background: linear-gradient(to right, #51cf66 0%, #ff6b6b 100%);
-                    border-radius: 10px; border: 2px solid {'#f0f2f6' if is_dark_theme else '#e6e9ef'};">
-            <div style="position: absolute; top: 0; left: {risk}%; 
-                        transform: translateX(-50%); height: 100%; width: 4px; 
-                        background: {'#ffffff' if is_dark_theme else '#000000'};"></div>
-            <div style="position: absolute; top: -30px; left: {risk}%; 
-                        transform: translateX(-50%); text-align: center; 
-                        font-weight: bold; color: {'#ffffff' if is_dark_theme else '#000000'};">
-                {risk:.1f}%
-            </div>
-            <div style="position: absolute; bottom: 5px; width: 100%; 
-                        text-align: center; color: {'#ffffff' if is_dark_theme else '#000000'}; 
-                        font-weight: bold;">
-                Risk Level
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Risk visualization
+        fig, ax = plt.subplots(figsize=(10, 3))
+        ax.barh(['Risk Level'], [risk], color='#ff6b6b' if risk > 50 else '#51cf66')
+        ax.set_xlim(0, 100)
+        ax.set_xlabel('Risk Percentage' if lang == "English" else "Peratusan Risiko")
+        ax.set_facecolor('none')  # Transparent background
+        fig.patch.set_facecolor('none')
+        ax.tick_params(colors=('white' if st.get_option("theme.backgroundColor") == '#0e1117' else 'black'))
+        st.pyplot(fig, transparent=True)
         
         # Risk interpretation
         if risk < 30:
@@ -227,33 +212,10 @@ st.sidebar.divider()
 if st.sidebar.checkbox("Show Feature Importance" if lang == "English" else "Tunjukkan Kepentingan Ciri"):
     try:
         st.subheader("Feature Importance" if lang == "English" else "Kepentingan Ciri")
-        
-        # Create a styled container with proper padding
-        with st.container():
-            # Add background styling for both light/dark themes
-            st.markdown(
-                f"<div style='background-color: {'#1a1a1a' if is_dark_theme else '#ffffff'}; "
-                f"padding: 15px; border-radius: 10px; border: 1px solid "
-                f"{'#444' if is_dark_theme else '#e6e9ef'};'>",
-                unsafe_allow_html=True
-            )
-            
-            # Display image with proper sizing
-            st.image(FEATURE_IMG_PATH, use_container_width=True)
-            
-            # Close container
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-            # Caption with theme-appropriate color
-            caption_color = "#ffffff" if is_dark_theme else "#000000"
-            st.markdown(
-                f"<div style='color: {caption_color}; margin-top: 10px;'>"
-                f"How different health factors contribute to diabetes risk" if lang == "English" else 
-                "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis"
-                "</div>", 
-                unsafe_allow_html=True
-            )
-            
+        # FIX: Use use_container_width instead of use_column_width
+        st.image(FEATURE_IMG_PATH, use_container_width=True)
+        st.caption("How different health factors contribute to diabetes risk" if lang == "English" else 
+                   "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis")
     except Exception as e:
         st.warning(f"Feature importance image not found: {str(e)}")
 
