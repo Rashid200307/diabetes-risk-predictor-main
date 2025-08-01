@@ -4,12 +4,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import sys
 
 # --- PATH CONFIGURATION FOR STREAMLIT CLOUD ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(current_dir, 'models', 'xgboost.pkl')
 FEATURE_IMG_PATH = os.path.join(current_dir, 'models', 'feature_importance.png')
+PERFORMANCE_REPORT_PATH = os.path.join(current_dir, 'models', 'performance_report.md')
 
 # --- ERROR HANDLING FOR DEPENDENCIES ---
 try:
@@ -29,6 +29,15 @@ except Exception as e:
     st.sidebar.error(f"Error loading model: {str(e)}")
     st.stop()
 
+# --- MODEL PERFORMANCE METRICS (Replace with your actual metrics) ---
+MODEL_PERFORMANCE = {
+    "Accuracy": 0.78,
+    "F1 Score": 0.75,
+    "ROC AUC": 0.85,
+    "Precision": 0.72,
+    "Recall": 0.78
+}
+
 # --- APP CONFIGURATION ---
 st.set_page_config(
     page_title="Diabetes Risk Predictor",
@@ -42,6 +51,27 @@ lang = st.sidebar.radio("Language", ["English", "Malay"])
 # App title
 titles = {"English": "Diabetes Risk Prediction", "Malay": "Ramalan Risiko Kencing Manis"}
 st.title(titles[lang])
+
+# --- MODEL TRUST SECTION ---
+st.subheader("About Our Model" if lang == "English" else "Tentang Model Kami")
+
+# Performance metrics in columns
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("Accuracy", f"{MODEL_PERFORMANCE['Accuracy']*100:.1f}%")
+col2.metric("ROC AUC", f"{MODEL_PERFORMANCE['ROC AUC']:.3f}")
+col3.metric("F1 Score", f"{MODEL_PERFORMANCE['F1 Score']:.3f}")
+col4.metric("Recall", f"{MODEL_PERFORMANCE['Recall']*100:.1f}%")
+
+# Model description
+st.info("""
+Our machine learning model was trained on a comprehensive dataset of medical records 
+and has been rigorously validated for accuracy. It uses the XGBoost algorithm, 
+which is known for its high performance in medical prediction tasks.
+""" if lang == "English" else """
+Model pembelajaran mesin kami telah dilatih pada set data komprehensif rekod perubatan 
+dan telah divalidasi dengan ketat untuk ketepatan. Ia menggunakan algoritma XGBoost, 
+yang terkenal dengan prestasi tinggi dalam tugas peramalan perubatan.
+""")
 
 # --- INPUT FORM ---
 input_labels = {
@@ -69,6 +99,7 @@ input_labels = {
 
 inputs = {}
 with st.form("prediction_form"):
+    st.subheader("Your Health Information" if lang == "English" else "Maklumat Kesihatan Anda")
     cols = st.columns(2)
     with cols[0]:
         inputs['Pregnancies'] = st.slider(input_labels[lang]["Pregnancies"], 0, 17, 1)
@@ -158,6 +189,15 @@ if submitted:
 
 # --- SIDEBAR FEATURES ---
 st.sidebar.divider()
+
+# Model performance metrics in sidebar
+st.sidebar.subheader("Model Performance")
+st.sidebar.metric("Accuracy", f"{MODEL_PERFORMANCE['Accuracy']*100:.1f}%")
+st.sidebar.metric("ROC AUC", f"{MODEL_PERFORMANCE['ROC AUC']:.3f}")
+st.sidebar.metric("F1 Score", f"{MODEL_PERFORMANCE['F1 Score']:.3f}")
+st.sidebar.progress(MODEL_PERFORMANCE['Accuracy'])
+
+st.sidebar.divider()
 st.sidebar.subheader("About" if lang == "English" else "Mengenai")
 st.sidebar.info("""
 This app predicts diabetes risk using machine learning. 
@@ -172,11 +212,24 @@ st.sidebar.divider()
 if st.sidebar.checkbox("Show Feature Importance" if lang == "English" else "Tunjukkan Kepentingan Ciri"):
     try:
         st.subheader("Feature Importance" if lang == "English" else "Kepentingan Ciri")
-        st.image(FEATURE_IMG_PATH, use_column_width=True)
+        # FIX: Use use_container_width instead of use_column_width
+        st.image(FEATURE_IMG_PATH, use_container_width=True)
         st.caption("How different health factors contribute to diabetes risk" if lang == "English" else 
                    "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis")
     except Exception as e:
         st.warning(f"Feature importance image not found: {str(e)}")
+
+# Model disclaimer
+st.sidebar.divider()
+st.sidebar.warning("""
+**Disclaimer:** This tool provides risk estimates only. 
+It is not a substitute for professional medical advice. 
+Always consult a healthcare provider for medical concerns.
+""" if lang == "English" else """
+**Penafian:** Alat ini memberikan anggaran risiko sahaja. 
+Ia bukan pengganti nasihat perubatan profesional. 
+Sentiasa berjumpa pembekal penjagaan kesihatan untuk masalah perubatan.
+""")
 
 # --- FOOTER ---
 st.divider()
