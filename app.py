@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import joblib
 import pandas as pd
@@ -97,6 +96,7 @@ input_labels = {
         "Age": "Umur (tahun)"
     }
 }
+
 inputs = {}
 with st.form("prediction_form"):
     st.subheader("Your Health Information" if lang == "English" else "Maklumat Kesihatan Anda")
@@ -106,11 +106,13 @@ with st.form("prediction_form"):
         inputs['Glucose'] = st.slider(input_labels[lang]["Glucose"], 0, 200, 100)
         inputs['BloodPressure'] = st.slider(input_labels[lang]["BloodPressure"], 0, 122, 70)
         inputs['SkinThickness'] = st.slider(input_labels[lang]["SkinThickness"], 0, 99, 20)
+        
     with cols[1]:
         inputs['Insulin'] = st.slider(input_labels[lang]["Insulin"], 0, 846, 79)
         inputs['BMI'] = st.slider(input_labels[lang]["BMI"], 0.0, 67.1, 25.0)
         inputs['DiabetesPedigreeFunction'] = st.slider(input_labels[lang]["DiabetesPedigreeFunction"], 0.08, 2.42, 0.47)
         inputs['Age'] = st.slider(input_labels[lang]["Age"], 21, 81, 30)
+    
     predict_text = {"English": "Predict Risk", "Malay": "Ramal Risiko"}
     submitted = st.form_submit_button(predict_text[lang])
 
@@ -119,40 +121,27 @@ if submitted:
     with st.spinner("Analyzing your risk..." if lang == "English" else "Menganalisis risiko anda..."):
         # Create dataframe from inputs
         input_df = pd.DataFrame([inputs])
+        
         # Make prediction
         try:
             risk = model.predict_proba(input_df)[0][1] * 100
         except Exception as e:
             st.error(f"Prediction error: {str(e)}")
             st.stop()
-
+        
         # Display results
         st.subheader("Prediction Results" if lang == "English" else "Keputusan Ramalan")
-
-        # Risk visualization - Improved contrast for all themes
+        
+        # Risk visualization
         fig, ax = plt.subplots(figsize=(10, 3))
         ax.barh(['Risk Level'], [risk], color='#ff6b6b' if risk > 50 else '#51cf66')
         ax.set_xlim(0, 100)
         ax.set_xlabel('Risk Percentage' if lang == "English" else "Peratusan Risiko")
-        
-        # Set text and tick colors for better visibility on dark/light backgrounds
-        ax.xaxis.label.set_color('white') # Default to white for better contrast
-        ax.tick_params(axis='x', colors='white') # X-axis tick labels
-        ax.tick_params(axis='y', colors='white') # Y-axis tick labels (Risk Level)
-        
-        # Set spines (box outline) color to white for visibility
-        for spine in ax.spines.values():
-            spine.set_edgecolor('white')
-            
-        # Ensure the Risk Level label is white
-        ax.get_yticklabels()[0].set_color('white')
-        
-        # Make the figure background transparent
+        ax.set_facecolor('none')  # Transparent background
         fig.patch.set_facecolor('none')
-        ax.set_facecolor('none')
-
+        ax.tick_params(colors=('white' if st.get_option("theme.backgroundColor") == '#0e1117' else 'black'))
         st.pyplot(fig, transparent=True)
-
+        
         # Risk interpretation
         if risk < 30:
             message = "✅ Low Risk: Maintain healthy diet and exercise"
@@ -166,12 +155,12 @@ if submitted:
             message = "❌ High Risk: Consult doctor immediately, start medication"
             malay_message = "❌ Risiko Tinggi: Berjumpa doktor segera, mulakan ubat-ubatan"
             color = "red"
-
+        
         st.markdown(
             f"<p style='font-size:20px; color:{color}; text-align:center;'>{message if lang == 'English' else malay_message}</p>", 
             unsafe_allow_html=True
         )
-
+        
         # Prevention tips
         st.subheader("Prevention Tips" if lang == "English" else "Tip Pencegahan")
         tips = {
@@ -194,6 +183,7 @@ if submitted:
                 "💧 Minum air secukupnya menggantikan minuman bergula"
             ]
         }
+        
         for tip in tips[lang]:
             st.info(tip)
 
@@ -206,8 +196,8 @@ st.sidebar.metric("Accuracy", f"{MODEL_PERFORMANCE['Accuracy']*100:.1f}%")
 st.sidebar.metric("ROC AUC", f"{MODEL_PERFORMANCE['ROC AUC']:.3f}")
 st.sidebar.metric("F1 Score", f"{MODEL_PERFORMANCE['F1 Score']:.3f}")
 st.sidebar.progress(MODEL_PERFORMANCE['Accuracy'])
-st.sidebar.divider()
 
+st.sidebar.divider()
 st.sidebar.subheader("About" if lang == "English" else "Mengenai")
 st.sidebar.info("""
 This app predicts diabetes risk using machine learning. 
@@ -217,13 +207,13 @@ Aplikasi ini meramalkan risiko kencing manis menggunakan pembelajaran mesin.
 Ia menganalisis parameter kesihatan untuk menilai tahap risiko anda.
 """)
 
-# Feature importance visualization - Improved contrast
+# Feature importance visualization
 st.sidebar.divider()
 if st.sidebar.checkbox("Show Feature Importance" if lang == "English" else "Tunjukkan Kepentingan Ciri"):
     try:
         st.subheader("Feature Importance" if lang == "English" else "Kepentingan Ciri")
-        # Display the image with a white border/frame for better visibility
-        st.image(FEATURE_IMG_PATH, caption="", use_container_width=True, clamp=True)
+        # FIX: Use use_container_width instead of use_column_width
+        st.image(FEATURE_IMG_PATH, use_container_width=True)
         st.caption("How different health factors contribute to diabetes risk" if lang == "English" else 
                    "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis")
     except Exception as e:
@@ -250,5 +240,3 @@ Developed for BIT4333 Introduction to Machine Learning |
 Dibangunkan untuk BIT4333 Pengenalan Kepada Pembelajaran Mesin | 
 [Repositori GitHub](https://github.com/yourusername/diabetes-ml-project)
 """)
-
-```
