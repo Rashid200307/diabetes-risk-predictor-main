@@ -4,12 +4,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from PIL import Image
 
 # --- PATH CONFIGURATION FOR STREAMLIT CLOUD ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(current_dir, 'models', 'xgboost.pkl')
 FEATURE_IMG_PATH = os.path.join(current_dir, 'models', 'feature_importance.png')
-PERFORMANCE_REPORT_PATH = os.path.join(current_dir, 'models', 'performance_report.md')
 
 # --- ERROR HANDLING FOR DEPENDENCIES ---
 try:
@@ -45,6 +45,9 @@ st.set_page_config(
     layout="wide"
 )
 
+# Detect theme for proper styling
+is_dark_theme = st.get_option("theme.backgroundColor") == '#0e1117'
+
 # Language toggle
 lang = st.sidebar.radio("Language", ["English", "Malay"])
 
@@ -53,25 +56,24 @@ titles = {"English": "Diabetes Risk Prediction", "Malay": "Ramalan Risiko Kencin
 st.title(titles[lang])
 
 # --- MODEL TRUST SECTION ---
-st.subheader("About Our Model" if lang == "English" else "Tentang Model Kami")
+with st.expander("About Our Model" if lang == "English" else "Tentang Model Kami", expanded=True):
+    # Performance metrics in columns
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Accuracy", f"{MODEL_PERFORMANCE['Accuracy']*100:.1f}%")
+    col2.metric("ROC AUC", f"{MODEL_PERFORMANCE['ROC AUC']:.3f}")
+    col3.metric("F1 Score", f"{MODEL_PERFORMANCE['F1 Score']:.3f}")
+    col4.metric("Recall", f"{MODEL_PERFORMANCE['Recall']*100:.1f}%")
 
-# Performance metrics in columns
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Accuracy", f"{MODEL_PERFORMANCE['Accuracy']*100:.1f}%")
-col2.metric("ROC AUC", f"{MODEL_PERFORMANCE['ROC AUC']:.3f}")
-col3.metric("F1 Score", f"{MODEL_PERFORMANCE['F1 Score']:.3f}")
-col4.metric("Recall", f"{MODEL_PERFORMANCE['Recall']*100:.1f}%")
-
-# Model description
-st.info("""
-Our machine learning model was trained on a comprehensive dataset of medical records 
-and has been rigorously validated for accuracy. It uses the XGBoost algorithm, 
-which is known for its high performance in medical prediction tasks.
-""" if lang == "English" else """
-Model pembelajaran mesin kami telah dilatih pada set data komprehensif rekod perubatan 
-dan telah divalidasi dengan ketat untuk ketepatan. Ia menggunakan algoritma XGBoost, 
-yang terkenal dengan prestasi tinggi dalam tugas peramalan perubatan.
-""")
+    # Model description
+    st.info("""
+    Our machine learning model was trained on a comprehensive dataset of medical records 
+    and has been rigorously validated for accuracy. It uses the XGBoost algorithm, 
+    which is known for its high performance in medical prediction tasks.
+    """ if lang == "English" else """
+    Model pembelajaran mesin kami telah dilatih pada set data komprehensif rekod perubatan 
+    dan telah divalidasi dengan ketat untuk ketepatan. Ia menggunakan algoritma XGBoost, 
+    yang terkenal dengan prestasi tinggi dalam tugas peramalan perubatan.
+    """)
 
 # --- INPUT FORM ---
 input_labels = {
@@ -97,21 +99,27 @@ input_labels = {
     }
 }
 
-inputs = {}
 with st.form("prediction_form"):
     st.subheader("Your Health Information" if lang == "English" else "Maklumat Kesihatan Anda")
-    cols = st.columns(2)
-    with cols[0]:
-        inputs['Pregnancies'] = st.slider(input_labels[lang]["Pregnancies"], 0, 17, 1)
-        inputs['Glucose'] = st.slider(input_labels[lang]["Glucose"], 0, 200, 100)
-        inputs['BloodPressure'] = st.slider(input_labels[lang]["BloodPressure"], 0, 122, 70)
-        inputs['SkinThickness'] = st.slider(input_labels[lang]["SkinThickness"], 0, 99, 20)
+    
+    # Create two columns for inputs
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        inputs = {
+            'Pregnancies': st.slider(input_labels[lang]["Pregnancies"], 0, 17, 1),
+            'Glucose': st.slider(input_labels[lang]["Glucose"], 0, 200, 100),
+            'BloodPressure': st.slider(input_labels[lang]["BloodPressure"], 0, 122, 70),
+            'SkinThickness': st.slider(input_labels[lang]["SkinThickness"], 0, 99, 20)
+        }
         
-    with cols[1]:
-        inputs['Insulin'] = st.slider(input_labels[lang]["Insulin"], 0, 846, 79)
-        inputs['BMI'] = st.slider(input_labels[lang]["BMI"], 0.0, 67.1, 25.0)
-        inputs['DiabetesPedigreeFunction'] = st.slider(input_labels[lang]["DiabetesPedigreeFunction"], 0.08, 2.42, 0.47)
-        inputs['Age'] = st.slider(input_labels[lang]["Age"], 21, 81, 30)
+    with col2:
+        inputs.update({
+            'Insulin': st.slider(input_labels[lang]["Insulin"], 0, 846, 79),
+            'BMI': st.slider(input_labels[lang]["BMI"], 0.0, 67.1, 25.0),
+            'DiabetesPedigreeFunction': st.slider(input_labels[lang]["DiabetesPedigreeFunction"], 0.08, 2.42, 0.47),
+            'Age': st.slider(input_labels[lang]["Age"], 21, 81, 30)
+        })
     
     predict_text = {"English": "Predict Risk", "Malay": "Ramal Risiko"}
     submitted = st.form_submit_button(predict_text[lang])
@@ -129,63 +137,65 @@ if submitted:
             st.error(f"Prediction error: {str(e)}")
             st.stop()
         
-        # Display results
-        st.subheader("Prediction Results" if lang == "English" else "Keputusan Ramalan")
-        
-        # Risk visualization
-        fig, ax = plt.subplots(figsize=(10, 3))
-        ax.barh(['Risk Level'], [risk], color='#ff6b6b' if risk > 50 else '#51cf66')
-        ax.set_xlim(0, 100)
-        ax.set_xlabel('Risk Percentage' if lang == "English" else "Peratusan Risiko")
-        ax.set_facecolor('none')  # Transparent background
-        fig.patch.set_facecolor('none')
-        ax.tick_params(colors=('white' if st.get_option("theme.backgroundColor") == '#0e1117' else 'black'))
-        st.pyplot(fig, transparent=True)
-        
-        # Risk interpretation
-        if risk < 30:
-            message = "✅ Low Risk: Maintain healthy diet and exercise"
-            malay_message = "✅ Risiko Rendah: Kekalkan diet sihat dan bersenam"
-            color = "green"
-        elif risk < 70:
-            message = "⚠️ Medium Risk: Reduce sugar intake, monitor glucose monthly"
-            malay_message = "⚠️ Risiko Sederhana: Kurangkan pengambilan gula, pantau glukosa bulanan"
-            color = "orange"
-        else:
-            message = "❌ High Risk: Consult doctor immediately, start medication"
-            malay_message = "❌ Risiko Tinggi: Berjumpa doktor segera, mulakan ubat-ubatan"
-            color = "red"
-        
-        st.markdown(
-            f"<p style='font-size:20px; color:{color}; text-align:center;'>{message if lang == 'English' else malay_message}</p>", 
-            unsafe_allow_html=True
-        )
-        
-        # Prevention tips
-        st.subheader("Prevention Tips" if lang == "English" else "Tip Pencegahan")
-        tips = {
-            "English": [
-                "🍎 Maintain a balanced diet with low sugar intake",
-                "🏃‍♂️ Exercise at least 30 minutes daily",
-                "🩸 Regularly monitor your blood glucose levels",
-                "🚭 Avoid smoking and limit alcohol consumption",
-                "😴 Get 7-8 hours of quality sleep each night",
-                "🥦 Increase fiber intake with vegetables and whole grains",
-                "💧 Stay hydrated with water instead of sugary drinks"
-            ],
-            "Malay": [
-                "🍎 Mengekalkan diet seimbang dengan pengambilan gula yang rendah",
-                "🏃‍♂️ Bersenam sekurang-kurangnya 30 minit setiap hari",
-                "🩸 Pantau tahap glukosa darah anda secara berkala",
-                "🚭 Elakkan merokok dan hadkan pengambilan alkohol",
-                "😴 Dapatkan tidur berkualiti 7-8 jam setiap malam",
-                "🥦 Tingkatkan pengambilan serat dengan sayur-sayuran dan bijirin penuh",
-                "💧 Minum air secukupnya menggantikan minuman bergula"
-            ]
-        }
-        
-        for tip in tips[lang]:
-            st.info(tip)
+        # Display results in a visually distinct container
+        with st.container():
+            st.subheader("Prediction Results" if lang == "English" else "Keputusan Ramalan")
+            
+            # Modern risk visualization with progress bar
+            st.metric(label="Risk Percentage", value=f"{risk:.1f}%")
+            
+            # Color-coded progress bar
+            progress_color = "green" if risk < 30 else "orange" if risk < 70 else "red"
+            st.progress(int(risk), text=f"Risk Level: {'Low' if risk < 30 else 'Medium' if risk < 70 else 'High'}")
+            
+            # Risk interpretation
+            if risk < 30:
+                message = "✅ Low Risk: Maintain healthy diet and exercise"
+                malay_message = "✅ Risiko Rendah: Kekalkan diet sihat dan bersenam"
+                color = "green"
+            elif risk < 70:
+                message = "⚠️ Medium Risk: Reduce sugar intake, monitor glucose monthly"
+                malay_message = "⚠️ Risiko Sederhana: Kurangkan pengambilan gula, pantau glukosa bulanan"
+                color = "orange"
+            else:
+                message = "❌ High Risk: Consult doctor immediately, start medication"
+                malay_message = "❌ Risiko Tinggi: Berjumpa doktor segera, mulakan ubat-ubatan"
+                color = "red"
+            
+            # Highlighted message
+            st.markdown(
+                f"<div style='background-color: {color}10; padding: 15px; border-radius: 10px; "
+                f"border-left: 5px solid {color}; margin: 20px 0;'>"
+                f"<p style='font-size:18px; color:{color}; margin:0;'>{message if lang == 'English' else malay_message}</p>"
+                "</div>", 
+                unsafe_allow_html=True
+            )
+            
+            # Prevention tips
+            st.subheader("Prevention Tips" if lang == "English" else "Tip Pencegahan")
+            tips = {
+                "English": [
+                    "🍎 Maintain a balanced diet with low sugar intake",
+                    "🏃‍♂️ Exercise at least 30 minutes daily",
+                    "🩸 Regularly monitor your blood glucose levels",
+                    "🚭 Avoid smoking and limit alcohol consumption",
+                    "😴 Get 7-8 hours of quality sleep each night",
+                    "🥦 Increase fiber intake with vegetables and whole grains",
+                    "💧 Stay hydrated with water instead of sugary drinks"
+                ],
+                "Malay": [
+                    "🍎 Mengekalkan diet seimbang dengan pengambilan gula yang rendah",
+                    "🏃‍♂️ Bersenam sekurang-kurangnya 30 minit setiap hari",
+                    "🩸 Pantau tahap glukosa darah anda secara berkala",
+                    "🚭 Elakkan merokok dan hadkan pengambilan alkohol",
+                    "😴 Dapatkan tidur berkualiti 7-8 jam setiap malam",
+                    "🥦 Tingkatkan pengambilan serat dengan sayur-sayuran dan bijirin penuh",
+                    "💧 Minum air secukupnya menggantikan minuman bergula"
+                ]
+            }
+            
+            for tip in tips[lang]:
+                st.info(tip)
 
 # --- SIDEBAR FEATURES ---
 st.sidebar.divider()
@@ -211,11 +221,35 @@ Ia menganalisis parameter kesihatan untuk menilai tahap risiko anda.
 st.sidebar.divider()
 if st.sidebar.checkbox("Show Feature Importance" if lang == "English" else "Tunjukkan Kepentingan Ciri"):
     try:
-        st.subheader("Feature Importance" if lang == "English" else "Kepentingan Ciri")
-        # FIX: Use use_container_width instead of use_column_width
-        st.image(FEATURE_IMG_PATH, use_container_width=True)
-        st.caption("How different health factors contribute to diabetes risk" if lang == "English" else 
-                   "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis")
+        # Create a visually appealing container
+        with st.container():
+            st.subheader("Feature Importance" if lang == "English" else "Kepentingan Ciri")
+            
+            # Add styled box with shadow
+            st.markdown("""
+            <style>
+            .feature-box {
+                background-color: white;
+                padding: 15px;
+                border-radius: 10px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                margin-bottom: 15px;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # Apply the style
+            st.markdown('<div class="feature-box">', unsafe_allow_html=True)
+            
+            # Display image with proper sizing
+            st.image(FEATURE_IMG_PATH, use_container_width=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Caption
+            st.caption("How different health factors contribute to diabetes risk" if lang == "English" else 
+                    "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis")
+            
     except Exception as e:
         st.warning(f"Feature importance image not found: {str(e)}")
 
