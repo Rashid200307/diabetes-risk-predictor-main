@@ -2,7 +2,6 @@ import streamlit as st
 import joblib
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 from PIL import Image
 
@@ -225,16 +224,17 @@ if st.sidebar.checkbox("Show Feature Importance" if lang == "English" else "Tunj
         with st.container():
             st.subheader("Feature Importance" if lang == "English" else "Kepentingan Ciri")
             
-            # Add styled box with shadow
-            st.markdown("""
+            # Add styled box with theme-adaptive colors
+            st.markdown(f"""
             <style>
-            .feature-box {
-                background-color: white;
+            .feature-box {{
+                background-color: {"#1e1e1e" if is_dark_theme else "#ffffff"};
                 padding: 15px;
                 border-radius: 10px;
+                border: 1px solid {"#444" if is_dark_theme else "#e6e9ef"};
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
                 margin-bottom: 15px;
-            }
+            }}
             </style>
             """, unsafe_allow_html=True)
             
@@ -246,9 +246,15 @@ if st.sidebar.checkbox("Show Feature Importance" if lang == "English" else "Tunj
             
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Caption
-            st.caption("How different health factors contribute to diabetes risk" if lang == "English" else 
-                    "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis")
+            # Caption with theme-appropriate color
+            caption_color = "#ffffff" if is_dark_theme else "#000000"
+            st.markdown(
+                f"<div style='color: {caption_color}; margin-top: 10px;'>"
+                f"How different health factors contribute to diabetes risk" if lang == "English" else 
+                "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis"
+                "</div>", 
+                unsafe_allow_html=True
+            )
             
     except Exception as e:
         st.warning(f"Feature importance image not found: {str(e)}")
