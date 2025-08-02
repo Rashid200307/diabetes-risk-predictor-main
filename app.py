@@ -34,7 +34,7 @@ MODEL_PERFORMANCE = {
     "F1 Score": 0.730,
     "ROC AUC": 0.830,
     "Precision": 0.80,
-    "Recall": 0.72.
+    "Recall": 0.72
 }
 
 # --- APP CONFIGURATION ---
