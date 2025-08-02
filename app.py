@@ -2,23 +2,22 @@ import streamlit as st
 import joblib
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 from PIL import Image
 
 # --- PATH CONFIGURATION FOR STREAMLIT CLOUD ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(current_dir, 'models', 'stacked_ensemble.pkl')  # Updated to use ensemble model
+MODEL_PATH = os.path.join(current_dir, 'models', 'xgboost.pkl')
 FEATURE_IMG_PATH = os.path.join(current_dir, 'models', 'feature_importance.png')
 
 # --- ERROR HANDLING FOR DEPENDENCIES ---
 try:
-    # Import necessary libraries
+    # Import XGBoost only when needed
     from xgboost import XGBClassifier
-    from sklearn.ensemble import StackingClassifier
-except ImportError as e:
-    st.error(f"""
-    Required libraries not installed! Please add these to requirements.txt:
-    {str(e)}
+except ImportError:
+    st.error("""
+    XGBoost not installed! Please add 'xgboost==2.0.3' to requirements.txt.
     """)
     st.stop()
 
@@ -30,13 +29,13 @@ except Exception as e:
     st.sidebar.error(f"Error loading model: {str(e)}")
     st.stop()
 
-# --- MODEL PERFORMANCE METRICS (Updated with tuned model metrics) ---
+# --- MODEL PERFORMANCE METRICS (Replace with your actual metrics) ---
 MODEL_PERFORMANCE = {
-    "Accuracy": 0.84,     # Improved from 0.78
-    "F1 Score": 0.82,     # Improved from 0.75
-    "ROC AUC": 0.91,      # Improved from 0.85
-    "Precision": 0.85,    # New metric
-    "Recall": 0.80        # New metric
+    "Accuracy": 0.78,
+    "F1 Score": 0.75,
+    "ROC AUC": 0.85,
+    "Precision": 0.72,
+    "Recall": 0.78
 }
 
 # --- APP CONFIGURATION ---
@@ -67,13 +66,13 @@ with st.expander("About Our Model" if lang == "English" else "Tentang Model Kami
 
     # Model description
     st.info("""
-    Our advanced machine learning model was trained on comprehensive medical data
-    using ensemble techniques for maximum accuracy. It combines multiple algorithms
-    to provide the most reliable diabetes risk assessment.
+    Our machine learning model was trained on a comprehensive dataset of medical records 
+    and has been rigorously validated for accuracy. It uses the XGBoost algorithm, 
+    which is known for its high performance in medical prediction tasks.
     """ if lang == "English" else """
-    Model pembelajaran mesin kami telah dilatih pada set data perubatan komprehensif
-    menggunakan teknik ensemble untuk ketepatan maksimum. Ia menggabungkan pelbagai algoritma
-    untuk memberikan penilaian risiko kencing manis yang paling boleh dipercayai.
+    Model pembelajaran mesin kami telah dilatih pada set data komprehensif rekod perubatan 
+    dan telah divalidasi dengan ketat untuk ketepatan. Ia menggunakan algoritma XGBoost, 
+    yang terkenal dengan prestasi tinggi dalam tugas peramalan perubatan.
     """)
 
 # --- INPUT FORM ---
@@ -147,8 +146,7 @@ if submitted:
             
             # Color-coded progress bar
             progress_color = "green" if risk < 30 else "orange" if risk < 70 else "red"
-            risk_level = "Low" if risk < 30 else "Medium" if risk < 70 else "High"
-            st.progress(int(risk), text=f"Risk Level: {risk_level}")
+            st.progress(int(risk), text=f"Risk Level: {'Low' if risk < 30 else 'Medium' if risk < 70 else 'High'}")
             
             # Risk interpretation
             if risk < 30:
@@ -207,7 +205,7 @@ st.sidebar.subheader("Model Performance")
 st.sidebar.metric("Accuracy", f"{MODEL_PERFORMANCE['Accuracy']*100:.1f}%")
 st.sidebar.metric("ROC AUC", f"{MODEL_PERFORMANCE['ROC AUC']:.3f}")
 st.sidebar.metric("F1 Score", f"{MODEL_PERFORMANCE['F1 Score']:.3f}")
-st.sidebar.progress(int(MODEL_PERFORMANCE['Accuracy'] * 100))
+st.sidebar.progress(MODEL_PERFORMANCE['Accuracy'])
 
 st.sidebar.divider()
 st.sidebar.subheader("About" if lang == "English" else "Mengenai")
@@ -227,17 +225,16 @@ if st.sidebar.checkbox("Show Feature Importance" if lang == "English" else "Tunj
         with st.container():
             st.subheader("Feature Importance" if lang == "English" else "Kepentingan Ciri")
             
-            # Add styled box with theme-adaptive colors
-            st.markdown(f"""
+            # Add styled box with shadow
+            st.markdown("""
             <style>
-            .feature-box {{
-                background-color: {"#1e1e1e" if is_dark_theme else "#ffffff"};
+            .feature-box {
+                background-color: white;
                 padding: 15px;
                 border-radius: 10px;
-                border: 1px solid {"#444" if is_dark_theme else "#e6e9ef"};
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
                 margin-bottom: 15px;
-            }}
+            }
             </style>
             """, unsafe_allow_html=True)
             
@@ -249,15 +246,9 @@ if st.sidebar.checkbox("Show Feature Importance" if lang == "English" else "Tunj
             
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Caption with theme-appropriate color
-            caption_color = "#ffffff" if is_dark_theme else "#000000"
-            st.markdown(
-                f"<div style='color: {caption_color}; margin-top: 10px;'>"
-                f"How different health factors contribute to diabetes risk" if lang == "English" else 
-                "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis"
-                "</div>", 
-                unsafe_allow_html=True
-            )
+            # Caption
+            st.caption("How different health factors contribute to diabetes risk" if lang == "English" else 
+                    "Bagaimana faktor kesihatan berbeza menyumbang kepada risiko kencing manis")
             
     except Exception as e:
         st.warning(f"Feature importance image not found: {str(e)}")
