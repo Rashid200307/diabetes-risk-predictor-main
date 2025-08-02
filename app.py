@@ -30,11 +30,11 @@ except Exception as e:
 
 # --- MODEL PERFORMANCE METRICS (Replace with your actual metrics) ---
 MODEL_PERFORMANCE = {
-    "Accuracy": 0.78,
-    "F1 Score": 0.75,
-    "ROC AUC": 0.85,
-    "Precision": 0.72,
-    "Recall": 0.78
+    "Accuracy": 0.810,
+    "F1 Score": 0.730,
+    "ROC AUC": 0.830,
+    "Precision": 0.80,
+    "Recall": 0.72
 }
 
 # --- APP CONFIGURATION ---
